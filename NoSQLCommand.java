@@ -2,6 +2,8 @@ package reactive_nosql;
 
 public interface NoSQLCommand {
 	
-	public void execute();	
+	public NoSQLDatabase execute(NoSQLDatabase db);	
+	
+//	public void writeCommand();
 		
 }

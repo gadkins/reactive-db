@@ -3,7 +3,7 @@ package reactive_nosql;
 public class BankingApplication {
 	
 	public BankingApplication() {
-//		NoSQLDatabase<String,String> db = retrieveDatabase();
+		NoSQLDatabase db = NoSQLDatabase.recover();
 	}
 	
 	
@@ -13,10 +13,6 @@ public class BankingApplication {
 //	}
 	
 	private void logTransaction() {
-		
-	}
-	
-	private void logDatabase() {
 		
 	}
 	
