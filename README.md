@@ -1,3 +1,2 @@
 # reactive-nosql
-Reactive NoSQL Database
-This implementation utilizes design patterns: Command, Momento, Composite, Observer and Proxy
+Reactive NoSQL Database that utilizes design patterns: Command, Momento, Composite, Observer and Proxy
