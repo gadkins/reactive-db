@@ -4,6 +4,9 @@ public interface NoSQLCommand {
 	
 	public NoSQLDatabase execute(NoSQLDatabase db);	
 	
-//	public void writeCommand();
+	public void rollback(NoSQLDatabase db);
+	
+	public String getName();
+
 		
 }

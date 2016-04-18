@@ -1,157 +1,143 @@
 package reactive_nosql;
 
-import com.google.gson.*;
 
 import static org.junit.Assert.*;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
-import org.json.JSONArray;
+import org.json.*;
 import org.junit.*;
+
 import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class NoSQLDatabaseTest {
 
-//	@Test
-//	public void testGetConnection() {
-//		NoSQLDatabase testDB = new NoSQLDatabase<String, Integer>();
-//		DummyConnection conn = testDB.getConnection();
-//	}
-//	private static NoSQLDatabase db = new NoSQLDatabase();
-//	private static List<String> array = new ArrayList<String>();
-//	private static Map<String,Object> object = new HashMap<String,Object>();
-
-	@BeforeClass
-	public static void setup() {
-//		array.add("hello, world");
-//		array.add("how are ya?");
-//		object.put("1", array);
-//		object.put("2", new HashMap<String,Object>());
-	}
+	NoSQLDatabase db;
+	JSONArray arr;
+	JSONObject obj;
 	
-	@AfterClass
-	public static void teardown() {
-		NoSQLDatabase db = NoSQLDatabase.recover();
-		List<String> array = new ArrayList<String>();
-		Map<String,Object> object = new HashMap<String,Object>();
-		array.add("hello, world");
-		array.add("how are ya?");
-		object.put("1", array);
-		object.put("2", new HashMap<String,Object>());
-		db.put("a1", 1)
-			.put("a2", 1.23)
-			.put("b1", "hello")
-			.put("c1", array)
-			.put("d1", object);
-		System.out.println("Writing database to file...");
-		FileWriter fstream;
-	    BufferedWriter out;
-	    try {
-		    fstream = new FileWriter("database.txt");
-		    out = new BufferedWriter(fstream);
-	
-		    Iterator<Entry<String, Object>> it = db.entrySet().iterator();
-	
-		    while (it.hasNext()) {
-		        Map.Entry<String, Object> pairs = it.next();
-		        String key = pairs.getKey();
-		        Object value = pairs.getValue();
-		        out.write(new Gson().toJson(key) + ", ");
-		        out.write(new Gson().toJson(value) + "\n");
-		    }
-		    out.flush();
-		    out.close();
-		    fstream.close();
-	    } catch (IOException e) {
-	    	e.printStackTrace();
-	    }
-	}
-	
-	@Test
-	public void testPut() {
-		NoSQLDatabase db = NoSQLDatabase.recover();
-		List<String> array = new ArrayList<String>();
-		Map<String,Object> object = new HashMap<String,Object>();
-		JSONArray jsArr = new JSONArray();
-		array.add("hello, world");
-		array.add("how are ya?");
-		object.put("1", array);
-		object.put("2", new HashMap<String,Object>());
-		db.put("a1", 1)
-			.put("a2", 1.23)
-			.put("b1", "hello")
-			.put("c1", array)
-			.put("d1", object)
-			.put("e1", jsArr);
-	}
-	
-	@Test
-	public void testGet() {
-		NoSQLDatabase db = NoSQLDatabase.recover();
-		List<String> array = new ArrayList<String>();
-		Map<String,Object> object = new HashMap<String,Object>();
-		array.add("hello, world");
-		array.add("how are ya?");
-		object.put("1", array);
-		object.put("2", new HashMap<String,Object>());
-		db.put("a1", 1)
-		.put("a2", 1.23)
-		.put("b1", "hello")
-		.put("c1", array)
-		.put("d1", object);
-		Object obj1 = db.get("a1");
-		Object obj2 = db.get("a2");
-		Object obj3 = db.get("b1");
-		Object obj4 = db.get("c1");
-		Object obj5 = db.get("d1");
-		assertEquals(1, obj1);
-		assertEquals(1.23, obj2);
-		assertEquals("hello", obj3);
-		assertThat(obj4, instanceOf(ArrayList.class));
-//		assertEquals("[hello, world, how are ya?]", obj4);
-//		assertEquals("{\"1\":[\"hello, world\",\"how are ya?\"],\"2\":{}}", obj5);
+	@Before
+	public void setup() {
 		try {
-			PrintWriter file = new PrintWriter("test.txt");
-			file.println(obj1);
-			file.println(obj2);
-			file.println(obj3);
-			file.println(obj4);
-//			file.println(obj5);
-			file.flush();
-			file.close();
-		} catch (IOException e) {
+			PrintWriter writer = new PrintWriter("commands.txt");
+			writer.write("");
+			writer.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		this.db = NoSQLDatabase.recover();
+		this.arr = new JSONArray();
+		this.obj = new JSONObject();
+		arr.put("hello, world")
+			.put("how are ya?")
+			.put(123)
+			.put(3.21)
+			.put(new JSONArray())
+			.put(new JSONObject());
+		obj.put("foo", arr);
+		clearSnapshot("dbSnapshot.txt");
+	}
+	
+	@After
+	public void cleanup() {
+		db.clear();
+	}
+	
+	public void clearSnapshot(String snapshot) {
+		try {
+			PrintWriter writer = new PrintWriter(snapshot);
+			writer.write("");
+			writer.close();
+		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
 	}
 	
 	@Test
+	public void testPut() {
+		db.put("a", 1);
+		assertThat(db.getInt("a"), instanceOf(int.class));
+		assertEquals(1, db.getInt("a"));
+		
+		db.put("b", 1.5678);
+		assertThat(db.getDouble("b"), instanceOf(double.class));
+		assertEquals(1.5678, db.getDouble("b"), 0.001); // max difference = 0.1%
+		
+		db.put("c", "hello, world");
+		assertThat(db.getString("c"), instanceOf(String.class));
+		assertEquals("hello, world", db.getString("c"));
+		
+		db.put("d", arr);
+		Object result1 = db.getJSONArray("d");
+		assertThat(result1, instanceOf(JSONArray.class));
+		assertEquals("[\"hello, world\",\"how are ya?\",123,3.21,[],{}]", result1.toString());
+		
+		db.put("e", obj);
+		Object result2 = db.getJSONObject("e");
+		assertThat(result2, instanceOf(JSONObject.class));
+		assertEquals("{\"foo\":[\"hello, world\",\"how are ya?\",123,3.21,[],{}]}", result2.toString());
+	}
+	
+	@Test
+	public void testGet() {
+		testPut();
+		assertNull(db.get("z"));
+		db.remove("a");
+		assertNull(db.get("a"));
+	}
+	
+	@Test
 	public void testReplace() {
-//		db.replace("a1", 8);
-//		assertEquals("8", db.get("a1"));
-//		ArrayList<Integer> intList = new ArrayList<Integer>();
-//		intList.add(5);
-//		intList.add(4);
-//		intList.add(3);
-//		db.replace("b1", intList);
-//		assertEquals("[5,4,3]", db.get("b1"));
+		testPut();
+		db.replace("a", 8);
 	}
 	
 	@Test
 	public void testRemove() {
-//		db.remove("a1");
-//		assertNull(db.get("a1"));
+		testPut();
+		assertEquals(1.5678, db.remove("b"));
+		assertEquals(1, db.remove("a"));
+		assertEquals("hello, world", db.remove("c"));
+		assertNull(db.remove("a"));
 	}
-
+	
+	@Test
+	public void testSnapshot() {
+		testPut();
+		File originalSnapshot = new File("testSnapshot.txt");
+		db.snapshot(new File("commands.txt"), originalSnapshot);
+		db.snapshot();
+		try {
+			File snapshot = new File("dbSnapshot.txt");
+			byte[] encodedFile1 = Files.readAllBytes(snapshot.toPath());
+			byte[] encodedFile2 = Files.readAllBytes(originalSnapshot.toPath());
+			String jsonDB = new String(encodedFile1, StandardCharsets.UTF_8);
+			String jsonOrig = new String(encodedFile2, StandardCharsets.UTF_8);
+			assertEquals(jsonOrig,jsonDB);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		clearSnapshot("dbSnapshot.txt");
+	}
+	
+	@Test
+	public void testRecover() {
+		testPut();
+		db.snapshot();
+		File commands = new File("commands.txt");
+		File snapshot = new File("dbSnapshot.txt");
+		db.put("x", "foobar");
+		NoSQLDatabase existingDB = NoSQLDatabase.recover(commands, snapshot);
+		assertEquals(1,existingDB.getInt("a"));
+		assertEquals(1.5678, existingDB.getDouble("b"), 0.001);
+		assertEquals("foobar", existingDB.getString("x"));
+//		existingDB.snapshot();
+		clearSnapshot("dbSnapshot.txt");
+	}
+	
 }
